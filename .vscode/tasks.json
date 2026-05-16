@@ -1,0 +1,40 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "sqlproj: Build SmartLaundryPickupand Delivery system",
+			"type": "process",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"c:/Users/MERCY/OneDrive/Desktop/SmartlaundryPickupandDelivery system/SmartLaundryPickupand Delivery system/SmartLaundryPickupand Delivery system.sqlproj"
+			],
+			"problemMatcher": "$sqlproj-problem-matcher",
+			"isBackground": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "Builds the SmartLaundryPickupand Delivery system SQL project"
+		},
+		{
+			"label": "sqlproj: Build SmartlaundrypickupDelivery system",
+			"type": "process",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"c:/Users/MERCY/OneDrive/Desktop/SmartlaundryPickupandDelivery system/src/db/SmartlaundrypickupDelivery system/SmartlaundrypickupDelivery system.sqlproj",
+				"/p:NetCoreBuild=true",
+				"/p:NETCoreTargetsPath=c:/Users/MERCY/.vscode/extensions/ms-mssql.sql-database-projects-vscode-1.5.9/BuildDirectory",
+				"/p:SystemDacpacsLocation=c:/Users/MERCY/.vscode/extensions/ms-mssql.sql-database-projects-vscode-1.5.9/BuildDirectory"
+			],
+			"problemMatcher": "$sqlproj-problem-matcher",
+			"isBackground": true,
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"detail": "Builds the SmartlaundrypickupDelivery system SQL project"
+		}
+	]
+}
