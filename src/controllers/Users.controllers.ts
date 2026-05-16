@@ -1,3 +1,5 @@
+//import { loginUsers } from './../Services/Users.Services';
+//import { loginUser } from './Users.controllers';
 import { User } from './../Types/Users.type';
 
 import { Request,Response } from "express";
@@ -76,3 +78,40 @@ export const updateUserById=async(req:Request,res:Response)=>{
         res.status(500).json({ error: 'Internal server error' });// Send an error response to the client
     }   
 };
+
+
+    export const loginUser= async(req: Request, res: Response) => {
+        try {
+            const { email, password } = req.body;
+
+            const result = await UsersServices.loginUsers(email, password);
+            res.status(200).json(result)
+        } catch (error: any) {
+            if (error.message === 'User not found') {
+                res.status(404).json ({ error: error.message });
+            } else if (error.message === 'Invalid credentials') {
+                res.status(401).json({error: error.message});
+            } else {
+                res.status(500).json({ error: "Internal server error" });
+            }
+        }
+    }
+    export const verifyUser = async (req: Request, res: Response) => {
+    try {
+        const { email, code } = req.body;
+
+        if (!email || !code) {
+            return res.status(400).json({ message: 'Email and code are required' });
+        }
+        const result = await UsersServices.verifyUser(email, code);
+        res.status(200).json(result);
+    } catch (error: any) {
+        if (error.message === 'User not found') {
+            res.status(404).json({ message: error.message });
+        } else if (error.message === 'Invalid verification code') {
+            res.status(400).json({ message: error.message });
+        } else {
+            res.status(500).json({ error: error.message });
+        }
+    }
+}

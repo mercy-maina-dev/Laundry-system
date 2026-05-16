@@ -188,3 +188,7 @@ SELECT * FROM Deliveries;
 SELECT * FROM Payments;
 SELECT * FROM OrderStatusHistory;
 GO
+-- Add verification columns to existing Users table
+ALTER TABLE Users
+ADD verification_code VARCHAR(10),
+    is_verified BIT DEFAULT 0;

@@ -63,3 +63,43 @@ export const updateUserById=async(id:number,User:User)=>{
     } 
     return { message: 'User updated successfully' };
 };
+
+
+
+export const setVerificationCode = async (email: string, code: string) => {
+    const pool = await getpool();
+    await pool
+        .request()
+        .input('email', email)
+        .input('code', code)
+        .query('UPDATE Users SET verification_code = @code, is_verified = 0 WHERE email = @email');
+    return { message: 'Verification code saved' };
+}
+//verify user by setting is_verified to true
+
+export const verifyUser = async (email: string) => {
+    const pool = await getpool();
+    await pool
+        .request()
+        .input("email", email)
+        .query(`
+            UPDATE Users
+            SET is_verified = 1, verification_code = NULL
+            WHERE email = @email
+        `);
+
+    return { message: "User verified successfully" };
+};
+//get user by email
+export const getUserByEmail = async (email: string) => {
+    const pool = await getpool();
+
+    const result = await pool.request()
+        .input("email", email)
+        .query(`
+            SELECT * FROM Users
+            WHERE email = @email
+        `);
+
+    return result.recordset[0] || null;
+};
