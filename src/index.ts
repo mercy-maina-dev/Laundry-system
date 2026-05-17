@@ -5,6 +5,8 @@ import getPool from './db/config';
 import { get } from 'node:http'  
 import dotenv from 'dotenv';
 import UsersRoutes from "./router/Users.routes";
+import ServicesRoutes from './router/Services.routes';
+import OrdersRoutes from './router/Orders.routes';    
 
 const app = express();// Create an Express application
 app.use(express.json());// Middleware to parse JSON request bodies
@@ -24,6 +26,13 @@ app.listen(PORT, () => {// Start the server and listen on the specified port
 
 //register routes
 UsersRoutes(app);// Register the routes for handling user-related operations
+ServicesRoutes(app);// Register the routes for handling service-related operations
+OrdersRoutes(app);// Register the routes for handling order-related operations
+
+
+
+
+
 
 getPool()// Establish a connection pool to the database
 .then(()=>console.log('Database connection pool established successfully.'))// Log a message when the database connection pool is established
