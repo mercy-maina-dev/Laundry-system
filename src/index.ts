@@ -6,7 +6,8 @@ import { get } from 'node:http'
 import dotenv from 'dotenv';
 import UsersRoutes from "./router/Users.routes";
 import ServicesRoutes from './router/Services.routes';
-import OrdersRoutes from './router/Orders.routes';    
+import OrdersRoutes from './router/Orders.routes';  
+import OrderItemsRoutes from './router/OrderItems.routes';  
 
 const app = express();// Create an Express application
 app.use(express.json());// Middleware to parse JSON request bodies
@@ -28,7 +29,7 @@ app.listen(PORT, () => {// Start the server and listen on the specified port
 UsersRoutes(app);// Register the routes for handling user-related operations
 ServicesRoutes(app);// Register the routes for handling service-related operations
 OrdersRoutes(app);// Register the routes for handling order-related operations
-
+OrderItemsRoutes(app);// Register the routes for handling order item-related operations
 
 
 
