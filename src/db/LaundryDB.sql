@@ -70,6 +70,81 @@ CREATE TABLE Orders (
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 GO
+-- Orders table with GPS coordinates
+ALTER TABLE Orders ADD
+    pickup_latitude DECIMAL(10, 8) NULL,
+    pickup_longitude DECIMAL(11, 8) NULL,
+    delivery_latitude DECIMAL(10, 8) NULL,
+    delivery_longitude DECIMAL(11, 8) NULL,
+    pickup_distance_km DECIMAL(10, 2) NULL,
+    delivery_distance_km DECIMAL(10, 2) NULL,
+    estimated_pickup_time DATETIME NULL,
+    estimated_delivery_time DATETIME NULL,
+    actual_pickup_time DATETIME NULL,
+    actual_delivery_time DATETIME NULL;
+
+UPDATE Orders SET 
+    pickup_latitude = -1.2921,
+    pickup_longitude = 36.8219,
+    delivery_latitude = -1.2864,
+    delivery_longitude = 36.8172
+WHERE pickup_latitude IS NULL;
+GO
+ALTER TABLE Orders ALTER COLUMN pickup_latitude DECIMAL(10, 8) NOT NULL;
+ALTER TABLE Orders ALTER COLUMN pickup_longitude DECIMAL(11, 8) NOT NULL;
+ALTER TABLE Orders ALTER COLUMN delivery_latitude DECIMAL(10, 8) NOT NULL;
+ALTER TABLE Orders ALTER COLUMN delivery_longitude DECIMAL(11, 8) NOT NULL;
+GO
+
+-- Driver real-time tracking (with socket support)
+CREATE TABLE DriverLiveTracking (
+    tracking_id INT IDENTITY(1,1) PRIMARY KEY,
+    driver_id INT NOT NULL,
+    order_id INT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    speed DECIMAL(5, 2) NULL, -- km/h
+    heading INT NULL, -- direction in degrees
+    accuracy DECIMAL(5, 2) NULL, -- GPS accuracy in meters
+    battery_level INT NULL,
+    is_moving BIT DEFAULT 0,
+    last_update DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+
+-- Geofence zones for pickup/delivery locations
+CREATE TABLE GeofenceZones (
+    zone_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    type VARCHAR(20) NOT NULL, -- 'PICKUP', 'DELIVERY'
+    center_latitude DECIMAL(10, 8) NOT NULL,
+    center_longitude DECIMAL(11, 8) NOT NULL,
+    radius_meters INT DEFAULT 100, -- 100 meter radius
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+
+-- Driver route history (for analytics)
+CREATE TABLE DriverRoutes (
+    route_id INT IDENTITY(1,1) PRIMARY KEY,
+    driver_id INT NOT NULL,
+    order_id INT NOT NULL,
+    route_type VARCHAR(20) NOT NULL, -- 'TO_PICKUP', 'TO_DELIVERY'
+    start_latitude DECIMAL(10, 8) NOT NULL,
+    start_longitude DECIMAL(11, 8) NOT NULL,
+    end_latitude DECIMAL(10, 8) NOT NULL,
+    end_longitude DECIMAL(11, 8) NOT NULL,
+    total_distance_km DECIMAL(10, 2) NULL,
+    total_duration_minutes INT NULL,
+    route_data NVARCHAR(MAX) NULL, -- JSON of all route points
+    started_at DATETIME DEFAULT GETDATE(),
+    completed_at DATETIME NULL,
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+
+
 
 -- ORDERS DATA (5)
 INSERT INTO Orders (user_id, pickup_address, delivery_address, pickup_date, delivery_date, total_weight, total_price, status)
@@ -264,3 +339,307 @@ CREATE TABLE TransactionCache (
   order_id INT NOT NULL,
   created_at DATETIME DEFAULT GETDATE()
 );
+
+
+CREATE FUNCTION dbo.CalculateDistance(
+    @lat1 DECIMAL(10, 8),
+    @lng1 DECIMAL(11, 8),
+    @lat2 DECIMAL(10, 8),
+    @lng2 DECIMAL(11, 8)
+)
+RETURNS DECIMAL(10, 2)
+AS
+BEGIN
+    DECLARE @r DECIMAL(10, 6) = 6371
+    DECLARE @lat1_r DECIMAL(10, 8) = RADIANS(@lat1)
+    DECLARE @lat2_r DECIMAL(10, 8) = RADIANS(@lat2)
+    DECLARE @dlat_r DECIMAL(10, 8) = RADIANS(@lat2 - @lat1)
+    DECLARE @dlng_r DECIMAL(10, 8) = RADIANS(@lng2 - @lng1)
+    
+    DECLARE @a DECIMAL(10, 8) = POWER(SIN(@dlat_r / 2), 2) +
+                                 COS(@lat1_r) * COS(@lat2_r) *
+                                 POWER(SIN(@dlng_r / 2), 2)
+    DECLARE @c DECIMAL(10, 8) = 2 * ATN2(SQRT(@a), SQRT(1 - @a))
+    
+    RETURN @r * @c
+END
+GO
+
+
+CREATE OR ALTER TRIGGER trg_UpdateOrderDistance
+ON Orders
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE o
+    SET pickup_distance_km = dbo.CalculateDistance(
+        i.pickup_latitude, i.pickup_longitude,
+        (SELECT store_latitude FROM StoreSettings),
+        (SELECT store_longitude FROM StoreSettings)
+    )
+    FROM Orders o
+    INNER JOIN inserted i ON o.order_id = i.order_id
+    WHERE i.pickup_latitude IS NOT NULL;
+END
+GO
+
+
+CREATE TABLE StoreSettings (
+    setting_id INT PRIMARY KEY DEFAULT 1,
+    store_name NVARCHAR(200) NOT NULL,
+    store_latitude DECIMAL(10, 8) NOT NULL,
+    store_longitude DECIMAL(11, 8) NOT NULL,
+    store_address NVARCHAR(500) NOT NULL,
+    contact_phone NVARCHAR(20) NOT NULL,
+    operating_hours NVARCHAR(200) NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
+    CONSTRAINT CHK_single_row CHECK (setting_id = 1)
+);
+GO
+
+-- Insert default store location (update with your actual location)
+UPDATE StoreSettings 
+SET 
+    store_name = 'Smart Laundry',
+    store_latitude = -1.2921,
+    store_longitude = 36.8219,
+    store_address = 'Nairobi CBD, Kenya',
+    contact_phone = '+254700000000',
+    updated_at = GETDATE()
+WHERE setting_id = 1;
+
+IF @@ROWCOUNT = 0
+BEGIN
+    INSERT INTO StoreSettings (setting_id, store_name, store_latitude, store_longitude, store_address, contact_phone)
+    VALUES (1, 'Smart Laundry', -1.2921, 36.8219, 'Nairobi CBD, Kenya', '+254700000000');
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM StoreSettings)
+BEGIN
+    INSERT INTO StoreSettings (store_name, store_latitude, store_longitude, store_address, contact_phone)
+    VALUES ('Smart Laundry', -1.2921, 36.8219, 'Nairobi CBD, Kenya', '+254700000000');
+END
+GO
+
+
+CREATE TABLE CustomerFeedback (
+    feedback_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    rating INT NOT NULL,
+    comment NVARCHAR(1000) NULL,
+    delivery_rating INT NULL,
+    punctuality_rating INT NULL,
+    professionalism_rating INT NULL,
+    feedback_type VARCHAR(50) DEFAULT 'DELIVERY',
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
+    
+    CONSTRAINT CHK_rating CHECK (rating >= 1 AND rating <= 5),
+    CONSTRAINT CHK_delivery_rating CHECK (delivery_rating >= 1 AND delivery_rating <= 5),
+    CONSTRAINT CHK_punctuality_rating CHECK (punctuality_rating >= 1 AND punctuality_rating <= 5),
+    CONSTRAINT CHK_professionalism_rating CHECK (professionalism_rating >= 1 AND professionalism_rating <= 5),
+    CONSTRAINT CHK_feedback_type CHECK (feedback_type IN ('PICKUP', 'DELIVERY', 'BOTH')),
+    
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (customer_id) REFERENCES Users(user_id),
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id)
+);
+GO
+
+CREATE INDEX IX_CustomerFeedback_order_id ON CustomerFeedback(order_id);
+CREATE INDEX IX_CustomerFeedback_driver_id ON CustomerFeedback(driver_id);
+CREATE INDEX IX_CustomerFeedback_customer_id ON CustomerFeedback(customer_id);
+CREATE INDEX IX_CustomerFeedback_rating ON CustomerFeedback(rating);
+CREATE INDEX IX_CustomerFeedback_created_at ON CustomerFeedback(created_at);
+GO
+
+SELECT * FROM CustomerFeedback;
+GO
+
+SELECT * FROM StoreSettings;
+GO
+
+SELECT * FROM DriverLiveTracking;
+GO
+
+SELECT * FROM DriverRoutes;
+GO
+ SELECT * FROM GeofenceZones;
+GO
+
+SELECT *FROM Orders;
+GO
+-- Create PickupDelivery Table
+CREATE TABLE PickupDelivery (
+    record_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    latitude DECIMAL(10, 8) NULL,
+    longitude DECIMAL(11, 8) NULL,
+    location_address NVARCHAR(500) NOT NULL,
+    customer_photo_url NVARCHAR(500) NULL,
+    cloths_photo_url NVARCHAR(500) NULL,
+    signature_url NVARCHAR(500) NULL,
+    notes NVARCHAR(500) NULL,
+    assigned_at DATETIME DEFAULT GETDATE(),
+    started_at DATETIME NULL,
+    completed_at DATETIME NULL,
+    customer_confirmed BIT DEFAULT 0,
+    confirmed_at DATETIME NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id)
+);
+GO
+
+CREATE INDEX IX_PickupDelivery_order_id ON PickupDelivery(order_id);
+CREATE INDEX IX_PickupDelivery_driver_id ON PickupDelivery(driver_id);
+CREATE INDEX IX_PickupDelivery_status ON PickupDelivery(status);
+GO
+
+-- Create DriverLiveTracking Table
+CREATE TABLE DriverLiveTracking (
+    tracking_id INT IDENTITY(1,1) PRIMARY KEY,
+    driver_id INT NOT NULL,
+    order_id INT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    speed DECIMAL(5, 2) NULL,
+    heading INT NULL,
+    accuracy DECIMAL(5, 2) NULL,
+    battery_level INT NULL,
+    is_moving BIT DEFAULT 0,
+    last_update DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+GO
+
+CREATE INDEX IX_DriverLiveTracking_driver_id ON DriverLiveTracking(driver_id);
+CREATE INDEX IX_DriverLiveTracking_last_update ON DriverLiveTracking(last_update);
+GO
+
+-- Create DriverRoutes Table
+CREATE TABLE DriverRoutes (
+    route_id INT IDENTITY(1,1) PRIMARY KEY,
+    driver_id INT NOT NULL,
+    order_id INT NOT NULL,
+    route_type VARCHAR(20) NOT NULL,
+    start_latitude DECIMAL(10, 8) NOT NULL,
+    start_longitude DECIMAL(11, 8) NOT NULL,
+    end_latitude DECIMAL(10, 8) NOT NULL,
+    end_longitude DECIMAL(11, 8) NOT NULL,
+    total_distance_km DECIMAL(10, 2) NULL,
+    total_duration_minutes INT NULL,
+    route_data NVARCHAR(MAX) NULL,
+    started_at DATETIME DEFAULT GETDATE(),
+    completed_at DATETIME NULL,
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+GO
+
+CREATE INDEX IX_DriverRoutes_order_id ON DriverRoutes(order_id);
+CREATE INDEX IX_DriverRoutes_driver_id ON DriverRoutes(driver_id);
+GO
+
+-- Create GeofenceZones Table
+CREATE TABLE GeofenceZones (
+    zone_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    center_latitude DECIMAL(10, 8) NOT NULL,
+    center_longitude DECIMAL(11, 8) NOT NULL,
+    radius_meters INT DEFAULT 100,
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+GO
+
+CREATE INDEX IX_GeofenceZones_order_id ON GeofenceZones(order_id);
+GO
+
+-- Create StoreSettings Table
+CREATE TABLE StoreSettings (
+    setting_id INT PRIMARY KEY DEFAULT 1,
+    store_name NVARCHAR(200) NOT NULL,
+    store_latitude DECIMAL(10, 8) NOT NULL,
+    store_longitude DECIMAL(11, 8) NOT NULL,
+    store_address NVARCHAR(500) NOT NULL,
+    contact_phone NVARCHAR(20) NOT NULL,
+    operating_hours NVARCHAR(200) NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
+    CONSTRAINT CHK_single_row CHECK (setting_id = 1)
+);
+GO
+
+-- Insert default store settings
+INSERT INTO StoreSettings (store_name, store_latitude, store_longitude, store_address, contact_phone)
+SELECT 'Smart Laundry', -1.2921, 36.8219, 'Nairobi CBD, Kenya', '+254700000000'
+WHERE NOT EXISTS (SELECT 1 FROM StoreSettings);
+GO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Insert test orders
+INSERT INTO Orders (user_id, pickup_address, delivery_address, pickup_latitude, pickup_longitude, delivery_latitude, delivery_longitude, total_weight, total_price, status) VALUES
+(1, '123 Main St, Nairobi', '456 Park Ave, Nairobi', -1.2921, 36.8219, -1.2864, 36.8172, 5, 750, 'PENDING'),
+(2, '789 Kenyatta Ave, Nairobi', '321 Moi Ave, Nairobi', -1.2833, 36.8233, -1.2763, 36.8153, 3, 450, 'PENDING');
+
+
+CREATE TABLE PickupDelivery (
+    record_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    latitude DECIMAL(10, 8) NULL,
+    longitude DECIMAL(11, 8) NULL,
+    location_address NVARCHAR(500) NOT NULL,
+    customer_photo_url NVARCHAR(500) NULL,
+    cloths_photo_url NVARCHAR(500) NULL,
+    signature_url NVARCHAR(500) NULL,
+    notes NVARCHAR(500) NULL,
+    assigned_at DATETIME DEFAULT GETDATE(),
+    started_at DATETIME NULL,
+    completed_at DATETIME NULL,
+    customer_confirmed BIT DEFAULT 0,
+    confirmed_at DATETIME NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (driver_id) REFERENCES Users(user_id)
+);
+GO
+
+CREATE INDEX IX_PickupDelivery_order_id ON PickupDelivery(order_id);
+CREATE INDEX IX_PickupDelivery_driver_id ON PickupDelivery(driver_id);
+CREATE INDEX IX_PickupDelivery_status ON PickupDelivery(status);
+GO
+select * from PickupDelivery;
+GO
+SELECT * FROM Users;

@@ -21,9 +21,16 @@ export const createOrder = async (Orders: any) => {
         .input('total_weight', Orders.total_weight)
         .input('total_price', Orders.total_price)
         .input('status', Orders.status)
+        .input('pickup_latitude', Orders.pickup_latitude)
+        .input('pickup_longitude', Orders.pickup_longitude)
+        .input('delivery_latitude', Orders.delivery_latitude)
+        .input('delivery_longitude', Orders.delivery_longitude)
+        .input('pickup_distance_km', Orders.pickup_distance_km)
+        .input('delivery_distance_km', Orders.delivery_distance_km)
+        .input('estimated_pickup_time', Orders.estimated_pickup_time)
         .query(`
             INSERT INTO Orders 
-            (user_id, pickup_address, delivery_address, pickup_date, delivery_date, total_weight, total_price, status)
+            (user_id, pickup_address, delivery_address, pickup_date, delivery_date, total_weight, total_price, status, pickup_latitude, pickup_longitude, delivery_latitude, delivery_longitude, pickup_distance_km, delivery_distance_km, estimated_pickup_time)
             VALUES 
             (@user_id, @pickup_address, @delivery_address, @pickup_date, @delivery_date, @total_weight, @total_price, @status)
         `);

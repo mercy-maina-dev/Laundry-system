@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import getPool from './db/config'; 
+import http from 'http';
+import { initializeSocket } from './socket/socket.server';
 import UsersRoutes from "./router/Users.routes";
 import ServicesRoutes from './router/Services.routes';
 import OrdersRoutes from './router/Orders.routes';  
@@ -9,11 +11,20 @@ import DeliveriesRoutes from './router/Deliveries.routes';
 import mpesaRoutes from "./router/Mpesa.routes";
 import PaymentsRoutes from './router/payments.routes';
 import OrderStatusHistoryRoutes from './router/OrderStatusHistory.routes';
+import PickupDeliveryRoutes from './router/pickupDelivery.routes';
+import feedbackRoutes from "./router/feedback.routes";
+import StoreSettingsRoutes from './router/StoreSettings.routes';
+import getGeofenceZonesRoutes from './router/GeofenceZones.routes';
+import getDriverRoutesRoutes from './router/driverRoutes.routes';
 
 // Load environment variables FIRST
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO with the HTTP server
+ const io = initializeSocket(server);
 
 // Middleware
 app.use(express.json());
@@ -42,6 +53,12 @@ OrderItemsRoutes(app);
 DeliveriesRoutes(app);
 PaymentsRoutes(app);
 OrderStatusHistoryRoutes(app);
+PickupDeliveryRoutes(app);
+feedbackRoutes(app);
+StoreSettingsRoutes(app);
+getGeofenceZonesRoutes(app);
+getDriverRoutesRoutes(app);
+
 const PORT = process.env.PORT || 8088;
 
 app.listen(PORT, () => {
