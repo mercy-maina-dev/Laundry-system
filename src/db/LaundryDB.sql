@@ -80,6 +80,7 @@ VALUES
 (5, 'Embakasi', 'Rongai', '2026-05-12', NULL, 4, 600, 'DELIVERED'),
 (2, 'Thika Road', 'Kilimani', '2026-05-11', NULL, 2, 300, 'PENDING');
 GO
+ALTER TABLE Orders ADD updated_at DATETIME DEFAULT GETDATE();
 
 -- =========================
 -- 5. ORDER ITEMS TABLE
@@ -155,6 +156,23 @@ VALUES
 (5, 300, 'MPESA', 'PENDING', 'TXN005', NULL);
 GO
 
+
+-- Add new columns to Payments table if they don't exist
+ALTER TABLE Payments ADD 
+  checkout_request_id NVARCHAR(100) NULL,
+  merchant_request_id NVARCHAR(100) NULL,
+  phone_number NVARCHAR(15) NULL,
+  result_code INT NULL,
+  result_desc NVARCHAR(255) NULL,
+  created_at DATETIME DEFAULT GETDATE(),
+  updated_at DATETIME NULL;
+
+-- Add indexes for better performance
+CREATE INDEX IX_Payments_checkout_request_id ON Payments(checkout_request_id);
+CREATE INDEX IX_Payments_order_id ON Payments(order_id);
+CREATE INDEX IX_Payments_transaction_ref ON Payments(transaction_ref);
+CREATE INDEX IX_Payments_payment_status ON Payments(payment_status);
+
 -- =========================
 -- 8. ORDER STATUS HISTORY
 -- =========================
@@ -167,6 +185,22 @@ CREATE TABLE OrderStatusHistory (
 );
 GO
 
+ALTER TABLE OrderStatusHistory ADD
+    notes TEXT NULL,
+    changed_by INT NULL,
+    previous_status VARCHAR(30) NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL;
+
+ALTER TABLE OrderStatusHistory
+ADD CONSTRAINT FK_OrderStatusHistory_Users 
+FOREIGN KEY (changed_by) REFERENCES Users(user_id);
+
+CREATE INDEX IX_OrderStatusHistory_order_id ON OrderStatusHistory(order_id);
+CREATE INDEX IX_OrderStatusHistory_status ON OrderStatusHistory(status);
+CREATE INDEX IX_OrderStatusHistory_changed_at ON OrderStatusHistory(changed_at);
+CREATE INDEX IX_OrderStatusHistory_changed_by ON OrderStatusHistory(changed_by);
+
 -- STATUS HISTORY (5)
 INSERT INTO OrderStatusHistory (order_id, status)
 VALUES
@@ -177,6 +211,19 @@ VALUES
 (5, 'PENDING');
 GO
 
+UPDATE OrderStatusHistory 
+SET updated_at = GETDATE() 
+WHERE updated_at IS NULL;
+GO
+
+INSERT INTO OrderStatusHistory (order_id, status, previous_status, notes, changed_by, changed_at, created_at)
+VALUES
+(1, 'PENDING', NULL, 'Order created by customer', NULL, GETDATE(), GETDATE()),
+(2, 'PICKED_UP', 'PENDING', 'Laundry picked up by driver John', 1, GETDATE(), GETDATE()),
+(3, 'WASHING', 'PICKED_UP', 'Washing process started', 1, GETDATE(), GETDATE()),
+(4, 'DELIVERED', 'READY', 'Order delivered to customer', 2, GETDATE(), GETDATE()),
+(5, 'PENDING', NULL, 'Order placed and waiting for payment', NULL, GETDATE(), GETDATE());
+GO
 -- =========================
 -- FINAL CHECK
 -- =========================
@@ -192,3 +239,28 @@ GO
 ALTER TABLE Users
 ADD verification_code VARCHAR(10),
     is_verified BIT DEFAULT 0;
+
+    CREATE TABLE MpesaTransactions (
+  id INT PRIMARY KEY IDENTITY(1,1),
+  checkout_request_id NVARCHAR(100) UNIQUE NOT NULL,
+  merchant_request_id NVARCHAR(100) NOT NULL,
+  order_id INT NOT NULL,
+  phone_number NVARCHAR(15) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  status NVARCHAR(20) DEFAULT 'PENDING',
+  result_code INT NULL,
+  result_desc NVARCHAR(255) NULL,
+  created_at DATETIME DEFAULT GETDATE(),
+  updated_at DATETIME NULL,
+  FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+
+CREATE INDEX IX_MpesaTransactions_checkout_request_id ON MpesaTransactions(checkout_request_id);
+CREATE INDEX IX_MpesaTransactions_order_id ON MpesaTransactions(order_id);
+
+CREATE TABLE TransactionCache (
+  id INT PRIMARY KEY IDENTITY(1,1),
+  checkout_request_id NVARCHAR(100) UNIQUE NOT NULL,
+  order_id INT NOT NULL,
+  created_at DATETIME DEFAULT GETDATE()
+);

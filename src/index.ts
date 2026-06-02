@@ -1,45 +1,59 @@
-import { User } from './Types/Users.type';
 import express from 'express';
-
-import getPool from './db/config'; 
-import { get } from 'node:http'  
 import dotenv from 'dotenv';
+import getPool from './db/config'; 
 import UsersRoutes from "./router/Users.routes";
 import ServicesRoutes from './router/Services.routes';
 import OrdersRoutes from './router/Orders.routes';  
 import OrderItemsRoutes from './router/OrderItems.routes'; 
 import DeliveriesRoutes from './router/Deliveries.routes'; 
 import mpesaRoutes from "./router/Mpesa.routes";
+import PaymentsRoutes from './router/payments.routes';
+import OrderStatusHistoryRoutes from './router/OrderStatusHistory.routes';
 
+// Load environment variables FIRST
+dotenv.config();
 
-const app = express();// Create an Express application
-app.use(express.json());// Middleware to parse JSON request bodies
-app.use("/mpesa", mpesaRoutes);
-dotenv.config();// Load environment variables from a .env file  
+const app = express();
 
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Health check route
 app.get('/', (req, res) => {
-  res.send('Hello, Express server is running!');// Send a response to the client
+  res.send('Hello, Express server is running!');
 });
 
-const PORT = process.env.PORT || 8088;// Define the port number for the server to listen on
+// ==========================================
+// MOUNT MPESA ROUTES - Choose ONE option:
+// ==========================================
 
-app.listen(PORT, () => {// Start the server and listen on the specified port
-  console.log(`Server is running on port :http://localhost:${PORT}`);// Log a message when the server starts
+// OPTION 1: Mount at /mpesa (your current setup)
+app.use("/mpesa", mpesaRoutes);
+
+// OPTION 2: Mount at /api/mpesa (more standard)
+// app.use("/api/mpesa", mpesaRoutes);
+
+// Register other routes (they use the function pattern)
+UsersRoutes(app);
+ServicesRoutes(app);
+OrdersRoutes(app);
+OrderItemsRoutes(app);
+DeliveriesRoutes(app);
+PaymentsRoutes(app);
+OrderStatusHistoryRoutes(app);
+const PORT = process.env.PORT || 8088;
+
+app.listen(PORT, () => {
+  console.log(`\n✅ Server is running on http://localhost:${PORT}`);
+  console.log(`\n📱 Available M-Pesa Endpoints:`);
+  console.log(`   GET  http://localhost:${PORT}/mpesa/token`);
+  console.log(`   POST http://localhost:${PORT}/mpesa/stkpush`);
+  console.log(`   POST http://localhost:${PORT}/mpesa/callback`);
+  console.log(`\n🏥 Health check: http://localhost:${PORT}/\n`);
 });
 
-
-
-//register routes
-UsersRoutes(app);// Register the routes for handling user-related operations
-ServicesRoutes(app);// Register the routes for handling service-related operations
-OrdersRoutes(app);// Register the routes for handling order-related operations
-OrderItemsRoutes(app);// Register the routes for handling order item-related operations
-DeliveriesRoutes(app);// Register the routes for handling delivery-related operatIions
-
-
-
-
-
-getPool()// Establish a connection pool to the database
-.then(()=>console.log('Database connection pool established successfully.'))// Log a message when the database connection pool is established
-.catch((error:any) => console.log('Error establishing database connection ', error));// Log any errors that occur while establishing the database connection pool
+// Database connection
+getPool()
+  .then(() => console.log('✅ Database connection pool established successfully.'))
+  .catch((error: any) => console.error('❌ Error establishing database connection:', error));
