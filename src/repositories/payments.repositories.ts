@@ -7,12 +7,12 @@ export const getAllPayments = async () => {
   const pool = await getpool();
 
   const result = await pool.request()
-    .query("SELECT * FROM Payments ORDER BY paid_at DESC");
+    .query("SELECT * FROM Payments ORDER BY paid_at ASC");
 
   return result.recordset;
 };
 
-// CREATE PAYMENT (Updated to handle all fields)
+// CREATE PAYMENT 
 export const createPayment = async (payment: NewPayments) => {
   const pool = await getpool();
 
@@ -26,16 +26,17 @@ export const createPayment = async (payment: NewPayments) => {
     .input("checkout_request_id", payment.checkout_request_id || null)
     .input("merchant_request_id", payment.merchant_request_id || null)
     .input("phone_number", payment.phone_number || null)
-    .input("result_code", payment.result_code || null)
-    .input("result_desc", payment.result_desc || null)
-    .query(`
-      INSERT INTO Payments
-      (order_id, amount, payment_method, payment_status, transaction_ref, paid_at, 
-       checkout_request_id, merchant_request_id, phone_number, result_code, result_desc, created_at)
-      VALUES
-      (@order_id, @amount, @payment_method, @payment_status, @transaction_ref, @paid_at,
-       @checkout_request_id, @merchant_request_id, @phone_number, @result_code, @result_desc, GETDATE())
-    `);
+    .input("result_code", payment.result_code ?? null)
+    .input("result_desc", payment.result_desc ?? null)
+   .query(`
+  INSERT INTO Payments
+  (order_id, amount, payment_method, payment_status, transaction_ref, paid_at, 
+   checkout_request_id, merchant_request_id, phone_number, result_code, result_desc, created_at)
+  VALUES
+  (@order_id, @amount, @payment_method, @payment_status, @transaction_ref, @paid_at,
+   @checkout_request_id, @merchant_request_id, @phone_number, @result_code, @result_desc, GETDATE());
+  SELECT SCOPE_IDENTITY() AS payment_id;
+`);
 
   return { 
     message: "Payment added successfully",
@@ -60,7 +61,7 @@ export const getPaymentByOrderId = async (order_id: number): Promise<Payments | 
 
   const result = await pool.request()
     .input("order_id", order_id)
-    .query("SELECT * FROM Payments WHERE order_id = @id ORDER BY created_at DESC");
+    .query("SELECT * FROM Payments WHERE order_id = @order_id ORDER BY created_at ASC");
 
   return result.recordset[0] || null;
 };
@@ -93,29 +94,29 @@ export const updatePayment = async (id: number, payment: UpdatePayments) => {
 
   const result = await pool.request()
     .input("id", id)
-    .input("amount", payment.amount)
-    .input("payment_method", payment.payment_method)
-    .input("payment_status", payment.payment_status)
-    .input("transaction_ref", payment.transaction_ref)
-    .input("paid_at", payment.paid_at)
-    .input("checkout_request_id", payment.checkout_request_id)
-    .input("merchant_request_id", payment.merchant_request_id)
-    .input("phone_number", payment.phone_number)
-    .input("result_code", payment.result_code)
-    .input("result_desc", payment.result_desc)
+    .input("amount", payment.amount ?? null)
+    .input("payment_method", payment.payment_method ?? null)
+    .input("payment_status", payment.payment_status ?? null)
+    .input("transaction_ref", payment.transaction_ref ?? null)
+    .input("paid_at", payment.paid_at ?? null)
+    .input("checkout_request_id", payment.checkout_request_id ?? null)
+    .input("merchant_request_id", payment.merchant_request_id ?? null)
+    .input("phone_number", payment.phone_number ?? null)
+    .input("result_code", payment.result_code !== undefined? Number(payment.result_code) : null)
+    .input("result_desc", payment.result_desc ?? null)
     .query(`
       UPDATE Payments
       SET 
-        amount = ISNULL(@amount, amount),
-        payment_method = ISNULL(@payment_method, payment_method),
-        payment_status = ISNULL(@payment_status, payment_status),
-        transaction_ref = ISNULL(@transaction_ref, transaction_ref),
-        paid_at = ISNULL(@paid_at, paid_at),
-        checkout_request_id = ISNULL(@checkout_request_id, checkout_request_id),
-        merchant_request_id = ISNULL(@merchant_request_id, merchant_request_id),
-        phone_number = ISNULL(@phone_number, phone_number),
-        result_code = ISNULL(@result_code, result_code),
-        result_desc = ISNULL(@result_desc, result_desc),
+        amount = COALESCE(@amount, amount),
+        payment_method = COALESCE(@payment_method, payment_method),
+        payment_status = COALESCE(@payment_status, payment_status),
+        transaction_ref = COALESCE(@transaction_ref, transaction_ref),
+        paid_at = COALESCE(@paid_at, paid_at),
+        checkout_request_id = COALESCE(@checkout_request_id, checkout_request_id),
+        merchant_request_id = COALESCE(@merchant_request_id, merchant_request_id),
+        phone_number = COALESCE(@phone_number, phone_number),
+        result_code = COALESCE(@result_code, result_code),
+        result_desc = COALESCE(@result_desc, result_desc),
         updated_at = GETDATE()
       WHERE payment_id = @id
     `);
@@ -132,7 +133,7 @@ export const updatePaymentStatus = async (
   checkout_request_id: string, 
   status: string, 
   transaction_ref?: string,
-  result_code?: number,
+  result_code?: number | null,
   result_desc?: string
 ) => {
   const pool = await getpool();

@@ -84,6 +84,9 @@ export const initiateSTKPush = async (req: Request, res: Response) => {
 // ==========================
 // MPESA CALLBACK
 // ==========================
+// ==========================
+// MPESA CALLBACK (UPDATED with result_code = 0 for success)
+// ==========================
 export const mpesaCallback = async (req: Request, res: Response) => {
   try {
     console.log("📞 MPESA CALLBACK RECEIVED:", JSON.stringify(req.body, null, 2));
@@ -149,8 +152,8 @@ export const mpesaCallback = async (req: Request, res: Response) => {
         checkout_request_id: CheckoutRequestID,
         merchant_request_id: MerchantRequestID,
         phone_number: phone,
-        result_code: ResultCode,
-        result_desc: ResultDesc
+        result_code: 0,  // ✅ FIXED: Use 0 instead of ResultCode
+        result_desc: "Success"  // ✅ FIXED: Use "Success" instead of ResultDesc
       };
 
       try {
@@ -241,7 +244,6 @@ export const mpesaCallback = async (req: Request, res: Response) => {
     });
   }
 };
-
 // ==========================
 // CHECK TRANSACTION STATUS
 // ==========================

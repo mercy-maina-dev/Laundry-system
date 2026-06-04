@@ -78,30 +78,32 @@ export const loginUsers = async (email: string, password:string) => {
         throw new Error('User not found')
     }
 
+        if (!user.is_verified) {
+        throw new Error('Please verify your email before logging in');
+    }
+
+
     //compare the passwords 
     const isMatch = await bcrypt.compare(password, user.password)
     if(!isMatch){
         throw new Error('Invalid credentials')
     }
 
-//     //compare the passwords
-//  //const isMatch = await bcrypt.compare(password, user.password)
-//   //  if(!isMatch){
-//         throw new Error('Invalid credentials')
-//     }
+
+//
 //create a JWT PAYLOAD
   const payload = {
         sub: user.user_id,
         full_name: user.full_name ,
         role: user.role,
-        exp: Math.floor(Date.now()/1000 + 60*60)
+        //exp: Math.floor(Date.now()/1000 + 60*60)
     }
 
     //generate a JWT token
     const secret = process.env.JWT_SECRET as string
     if (!secret) throw new Error ('JWT Secret is not defined');
 
-    const token = jwt.sign(payload, secret) //token to use as a card
+    const token = jwt.sign(payload, secret, {expiresIn: '1h'}); //token to use as a card
 
     //return successful login
     return {

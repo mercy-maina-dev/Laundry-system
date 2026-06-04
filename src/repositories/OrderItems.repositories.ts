@@ -37,16 +37,21 @@ export const deleteOrderItemById=async(id:number)=>{
     return result;
 };
 //update order item by id
-export const updateOrderItemById=async(id:number, orderItem:any)=>{
-    const pool= await getpool();
-    const result=await pool
-    .request()
-    .input('id', id)    
-    .input('order_id', orderItem.order_id)
-    .input('service_id', orderItem.service_id)
-    .input('quantity', orderItem.quantity)
-    .input('price', orderItem.price)
-    .query('UPDATE OrderItems SET order_id = @order_id, service_id = @service_id, quantity = @quantity, price = @price WHERE item_id = @id');
+export const updateOrderItemById = async (id: number, item: any) => {
+    const pool = await getpool();
+    
+    const result = await pool
+        .request()
+        .input('id', id)
+        .input('quantity', item.quantity)
+        .input('price', item.price)
+        .query(`
+            UPDATE OrderItems 
+            SET 
+                quantity = @quantity,
+                price = @price
+            WHERE item_id = @id
+        `);
+    
     return result;
-}   
-
+};

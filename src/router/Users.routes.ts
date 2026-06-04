@@ -9,13 +9,16 @@ import { verify, } from "jsonwebtoken";
 
 
 const getAllUsersRoutes=(app:Express)=>{
-    app.get('/user',UsersControllers.getAllUsers);// Define a route for retrieving all users and associate it with the getAllUsers controller function
+    app.get('/admin/users',UsersControllers.getAllUsers);// Define a route for retrieving all users and associate it with the getAllUsers controller function
     app.post('/adduser',UsersControllers.createUser);
     app.get('/user/:id',UsersControllers.getUserById);
     app.delete('/user/:id',UsersControllers.deleteUserById);
     app.put('/user/:id',UsersControllers.updateUserById);
     app.post('/login',UsersControllers.loginUser);
     app.post('/verify',UsersControllers.verifyUser);
+    //app.get('/admin/users', adminOnly, UsersControllers.getAllUsers);
+//app.get('/driver/tasks', driverOnly, UsersControllers.);
+//app.get('/customer/orders', customerOnly, UsersControllers.getCustomerOrders);
 
 
 

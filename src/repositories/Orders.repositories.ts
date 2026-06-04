@@ -51,10 +51,40 @@ export const getOrderById = async (id: number) => {
 //deleting order by id
 export const deleteOrderById = async (id: number) => {
     const pool = await getpool();
+    
+    // Delete related records first
+
+    await pool.request()
+        .input('id', id)
+        .query('DELETE FROM Deliveries WHERE order_id = @id');
+
+        
+    await pool.request()
+        .input('id', id)
+        .query('DELETE FROM OrderItems WHERE order_id = @id');
+    
+    await pool.request()
+        .input('id', id)
+        .query('DELETE FROM Payments WHERE order_id = @id');
+    
+    await pool.request()
+        .input('id', id)
+        .query('DELETE FROM PickupDelivery WHERE order_id = @id');
+    
+    await pool.request()
+        .input('id', id)
+        .query('DELETE FROM OrderStatusHistory WHERE order_id = @id');
+    
+    await pool.request()
+        .input('id', id)
+        .query('DELETE FROM CustomerFeedback WHERE order_id = @id');
+    
+    // Finally delete the order
     const result = await pool
         .request()
         .input('id', id)
         .query('DELETE FROM Orders WHERE order_id = @id');
+    
     return result;
 };
 

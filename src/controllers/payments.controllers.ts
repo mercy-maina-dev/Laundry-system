@@ -9,8 +9,26 @@ export const getAllPayments = async (req: Request, res: Response) => {
 
 // CREATE
 export const createPayment = async (req: Request, res: Response) => {
-  const payment = await PaymentsService.createPayment(req.body);
-  res.json(payment);
+  try {
+    const paymentData = {
+      ...req.body,
+      result_code: 0,
+      result_desc: "Success"
+    };
+    
+    const payment = await PaymentsService.createPayment(paymentData);
+    res.status(201).json({
+      success: true,
+      data: payment,
+      message: "Payment created successfully"
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to create payment",
+      error: error.message
+    });
+  }
 };
 
 // GET BY ID

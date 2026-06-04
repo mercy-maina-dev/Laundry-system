@@ -643,3 +643,11 @@ GO
 select * from PickupDelivery;
 GO
 SELECT * FROM Users;
+
+
+SELECT payment_id, result_code, created_at, updated_at 
+FROM Payments 
+WHERE payment_id = (SELECT MAX(payment_id) FROM Payments);
+
+
+DISABLE TRIGGER ALL ON Payments;

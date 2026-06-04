@@ -77,6 +77,11 @@ export const deleteOrder=async(req:Request,res:Response)=>{
         res.status(200).json({message:'Order deleted successfully'});
     } catch (error: any) {
         console.error('Error deleting order:', error);
+         if (error.message && error.message.includes('FOREIGN KEY')) {
+        return res.status(400).json({ 
+            error: 'Cannot delete order because it has related records (payments, items, etc.)' 
+        });
+    }
         res.status(500).json({error:'Internal server error'});
     }   
 };
