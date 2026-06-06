@@ -1,22 +1,23 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "rootDir": "./src",
-    // "moduleResolution": "node10",
-    "moduleResolution": "nodenext",
+    "module": "commonjs",
+    "rootDir": "./",
+    "moduleResolution": "node",
     "outDir": "./dist",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true, 
-    /* Type Checking */
+    "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": true 
+    "skipLibCheck": true,
+    "types": ["jest", "node"],
+    "ignoreDeprecations": "6.0"
   },
   "include": [
-    "src/**/*"   
+    "src/**/*",
+    "_tests_/**/*"
   ],
   "exclude": [
     "node_modules",
-    "**/*.spec.ts"
-  ],
+    "dist"
+  ]
 }

@@ -310,6 +310,8 @@ SELECT * FROM Deliveries;
 SELECT * FROM Payments;
 SELECT * FROM OrderStatusHistory;
 GO
+
+UPDATE Users SET is_verified = 1 WHERE email = 'admin@gmail.com';
 -- Add verification columns to existing Users table
 ALTER TABLE Users
 ADD verification_code VARCHAR(10),

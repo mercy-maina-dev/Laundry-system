@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import getPool from './db/config'; 
 import http from 'http';
+import cors from 'cors';
 import { initializeSocket } from './socket/socket.server';
 import UsersRoutes from "./router/Users.routes";
 import ServicesRoutes from './router/Services.routes';
@@ -27,6 +28,7 @@ const server = http.createServer(app);
  const io = initializeSocket(server);
 
 // Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
