@@ -64,8 +64,8 @@ getDriverRoutesRoutes(app);
 const PORT = process.env.PORT || 8088;
 
 app.listen(PORT, () => {
-  console.log(`\n✅ Server is running on http://localhost:${PORT}`);
-  console.log(`\n📱 Available M-Pesa Endpoints:`);
+  console.log(`\n Server is running on http://localhost:${PORT}`);
+  console.log(`\n Available M-Pesa Endpoints:`);
   console.log(`   GET  http://localhost:${PORT}/mpesa/token`);
   console.log(`   POST http://localhost:${PORT}/mpesa/stkpush`);
   console.log(`   POST http://localhost:${PORT}/mpesa/callback`);
@@ -75,4 +75,4 @@ app.listen(PORT, () => {
 // Database connection
 getPool()
   .then(() => console.log('✅ Database connection pool established successfully.'))
-  .catch((error: any) => console.error('❌ Error establishing database connection:', error));
+  .catch((error: any) => console.error(' Error establishing database connection:', error));
