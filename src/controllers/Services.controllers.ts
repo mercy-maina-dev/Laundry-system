@@ -1,10 +1,11 @@
-////import { getAllServices } from './../repositories/Services.repositories';
+
 import { Request,Response } from "express";
 import getpool from "../db/config";//establish a connection pool to the database
 import * as getAllServicesServices from '../Services/Services.Services';// Import all functions from the UsersService module to handle business logic related to users
 
 
 export const getAllServices=async(req:Request,res:Response)=>{ 
+    console.log('Fetching all services...');
     try {
         const Services =await getAllServicesServices.getAllServices();
             

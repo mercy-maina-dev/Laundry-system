@@ -10,15 +10,21 @@ export const getAllServices=async():Promise<any[]>=>{
 }
 
 //adding a service
-export const createService=async(service: Services) =>{
-    const pool= await getpool();
-    const result=await pool.request()
-    .input('service_name',service.service_name)
-    .input('price_per_kg',service.price_per_kg)
-    .input('description',service.description)
-    .query('INSERT INTO Services (service_name, price_per_kg, description) VALUES (@service_name, @price_per_kg, @description)');
+export const createService = async (service: any) => {
+    const pool = await getpool();
+    
+    const result = await pool.request()
+        .input('service_name', service.name || service.service_name)   // ✅ map name -> service_name
+        .input('price_per_kg', parseFloat(service.price_per_kg) || 0)
+        .input('description', service.description || '')
+        .input('category', service.category || 'WASH')
+        .query(`
+            INSERT INTO Services (service_name, price_per_kg, description, category)
+            VALUES (@service_name, @price_per_kg, @description, @category)
+        `);
+    
     return result.rowsAffected[0];
-}
+};
 
 //getting a service by id
 export const getServiceById=async(id:number):Promise<Services | null>=>{

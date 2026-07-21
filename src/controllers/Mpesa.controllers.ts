@@ -5,9 +5,9 @@ import * as OrdersRepository from "../repositories/Orders.repositories";
 
 const transactionCache = new Map<string, number>();
 
-// ==========================
+
 // TEST TOKEN
-// ==========================
+
 export const testMpesaToken = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
@@ -26,9 +26,9 @@ export const testMpesaToken = async (req: Request, res: Response) => {
   }
 };
 
-// ==========================
+
 // INITIATE STK PUSH
-// ==========================
+
 export const initiateSTKPush = async (req: Request, res: Response) => {
   try {
     const { phone, amount, order_id } = req.body;
@@ -81,20 +81,16 @@ export const initiateSTKPush = async (req: Request, res: Response) => {
   }
 };
 
-// ==========================
 // MPESA CALLBACK
-// ==========================
-// ==========================
-// MPESA CALLBACK (UPDATED with result_code = 0 for success)
-// ==========================
+
 export const mpesaCallback = async (req: Request, res: Response) => {
   try {
-    console.log("📞 MPESA CALLBACK RECEIVED:", JSON.stringify(req.body, null, 2));
+    console.log(" MPESA CALLBACK RECEIVED:", JSON.stringify(req.body, null, 2));
 
     const callback = req.body?.Body?.stkCallback;
 
     if (!callback) {
-      console.log("❌ Invalid callback structure - missing stkCallback");
+      console.log(" Invalid callback structure - missing stkCallback");
       return res.status(400).json({
         message: "Invalid callback structure",
       });
@@ -108,19 +104,19 @@ export const mpesaCallback = async (req: Request, res: Response) => {
       MerchantRequestID 
     } = callback;
 
-    console.log(`🔍 Processing callback for CheckoutRequestID: ${CheckoutRequestID}`);
-    console.log(`📊 ResultCode: ${ResultCode}, ResultDesc: ${ResultDesc}`);
+    console.log(` Processing callback for CheckoutRequestID: ${CheckoutRequestID}`);
+    console.log(` ResultCode: ${ResultCode}, ResultDesc: ${ResultDesc}`);
 
     let order_id = transactionCache.get(CheckoutRequestID);
 
     if (!order_id) {
-      console.log(`⚠️ Order ID not found in cache for ${CheckoutRequestID}`);
+      console.log(` Order ID not found in cache for ${CheckoutRequestID}`);
       
       if (MerchantRequestID && MerchantRequestID.includes('-')) {
         const extractedOrderId = parseInt(MerchantRequestID.split('-')[1]);
         if (!isNaN(extractedOrderId)) {
           order_id = extractedOrderId;
-          console.log(`✅ Extracted order_id ${order_id} from MerchantRequestID: ${MerchantRequestID}`);
+          console.log(` Extracted order_id ${order_id} from MerchantRequestID: ${MerchantRequestID}`);
         }
       }
       
@@ -134,7 +130,7 @@ export const mpesaCallback = async (req: Request, res: Response) => {
     }
 
     if (ResultCode === 0) {
-      console.log(`✅ Payment successful for Order ${order_id}`);
+      console.log(` Payment successful for Order ${order_id}`);
       
       const items = CallbackMetadata?.Item || [];
       
@@ -152,8 +148,8 @@ export const mpesaCallback = async (req: Request, res: Response) => {
         checkout_request_id: CheckoutRequestID,
         merchant_request_id: MerchantRequestID,
         phone_number: phone,
-        result_code: 0,  // ✅ FIXED: Use 0 instead of ResultCode
-        result_desc: "Success"  // ✅ FIXED: Use "Success" instead of ResultDesc
+        result_code: 0,
+        result_desc: "Success"  
       };
 
       try {
@@ -167,11 +163,11 @@ export const mpesaCallback = async (req: Request, res: Response) => {
         console.log(`🗑️ Cleared cache for ${CheckoutRequestID}`);
         
       } catch (dbError) {
-        console.error(`❌ Database error:`, dbError);
+        console.error(` Database error:`, dbError);
       }
       
     } else if (ResultCode === 1037) {
-      console.log(`⏰ Payment timeout for Order ${order_id}: ${ResultDesc}`);
+      console.log(` Payment timeout for Order ${order_id}: ${ResultDesc}`);
       
       const paymentData = {
         order_id: order_id,
@@ -191,7 +187,7 @@ export const mpesaCallback = async (req: Request, res: Response) => {
       await OrdersRepository.updateOrderStatus(order_id, 'TIMEOUT');
       
     } else if (ResultCode === 1032) {
-      console.log(`❌ User cancelled payment for Order ${order_id}: ${ResultDesc}`);
+      console.log(` User cancelled payment for Order ${order_id}: ${ResultDesc}`);
       
       const paymentData = {
         order_id: order_id,
@@ -211,7 +207,7 @@ export const mpesaCallback = async (req: Request, res: Response) => {
       await OrdersRepository.updateOrderStatus(order_id, 'CANCELLED');
       
     } else {
-      console.log(`❌ Payment failed for Order ${order_id}: ${ResultDesc}`);
+      console.log(` Payment failed for Order ${order_id}: ${ResultDesc}`);
       
       const paymentData = {
         order_id: order_id,
@@ -237,16 +233,16 @@ export const mpesaCallback = async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    console.error("❌ Callback error:", error);
+    console.error(" Callback error:", error);
     return res.status(200).json({
       message: "Callback received but processing failed",
       error: error instanceof Error ? error.message : "Unknown error"
     });
   }
 };
-// ==========================
+
 // CHECK TRANSACTION STATUS
-// ==========================
+
 export const checkTransactionStatus = async (req: Request, res: Response) => {
   try {
     const { checkoutRequestID } = req.params;
@@ -276,12 +272,8 @@ export const checkTransactionStatus = async (req: Request, res: Response) => {
   }
 };
 
-// ==========================
-// CHECK ORDER STATUS (NEW)
-// ==========================
-// ==========================
-// CHECK ORDER STATUS (FIXED)
-// ==========================
+
+
 export const checkOrderStatus = async (req: Request, res: Response) => {
   try {
     let { order_id } = req.params;
@@ -293,7 +285,7 @@ export const checkOrderStatus = async (req: Request, res: Response) => {
       });
     }
     
-    // Fix: Ensure order_id is a string, then convert to number
+    
     const orderIdString = Array.isArray(order_id) ? order_id[0] : order_id;
     const orderId = parseInt(orderIdString);
     

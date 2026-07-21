@@ -16,6 +16,7 @@ const getAllUsersRoutes=(app:Express)=>{
     app.put('/user/:id',UsersControllers.updateUserById);
     app.post('/login',UsersControllers.loginUser);
     app.post('/verify',UsersControllers.verifyUser);
+    app.post('/resend-verification',UsersControllers.resendVerification);
     //app.get('/admin/users', adminOnly, UsersControllers.getAllUsers);
 //app.get('/driver/tasks', driverOnly, UsersControllers.);
 //app.get('/customer/orders', customerOnly, UsersControllers.getCustomerOrders);

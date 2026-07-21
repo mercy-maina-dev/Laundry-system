@@ -5,15 +5,17 @@ import { User } from './../Types/Users.type';
     import { Request,Response } from "express";
     import getpool from "../db/config";//establish a connection pool to the database
     import * as UsersServices from '../Services/Users.Services';// Import all functions from the UsersService module to handle business logic related to users
+import { sendEmail } from '../mailer/mailer';
+import * as UsersRepository from '../repositories/Users.repositories';
 
-export const getAllUsers=async(req:Request,res:Response)=>{ 
-    try {
-        const Users =await UsersServices.getAllUsers();// Call the getAllUsers method from the UsersService to retrieve all users from the database
-        res.status(200).json({Users});
-    } catch (error: any) {
-        console.error('Error retrieving users:', error);
-        res.status(500).json({error:'Internal server error'});// Send an error response to the client
-    }
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const Users = await UsersServices.getAllUsers();
+    res.status(200).json(Users); // Remove the { Users } wrapper
+  } catch (error: any) {
+    console.error('Error retrieving users:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }
         
 export const createUser=async(req:Request,res:Response)=>{
@@ -117,3 +119,31 @@ export const updateUserById=async(req:Request,res:Response)=>{
         }
     }
 }
+
+export const resendVerification = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        // Generate new verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Update user with new code
+        await UsersRepository.setVerificationCode(email, verificationCode);
+        
+        // Resend email with new code
+        await sendEmail(
+            email,
+            'New Verification Code - Smart Laundry',
+            `Your new verification code is: ${verificationCode}`
+        );
+        
+        res.status(200).json({ message: 'Verification code resent successfully' });
+    } catch (error: any) {
+        console.error('Error resending verification:', error);
+        res.status(500).json({ error: 'Failed to resend verification code' });
+    }
+};

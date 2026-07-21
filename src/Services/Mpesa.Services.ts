@@ -85,7 +85,8 @@ export const stkPush = async (phone: string, amount: number, order_id: number) =
   
   console.log(`🔐 Password generated: ${password.substring(0, 20)}...`);
 
-  const callbackUrl = process.env.MPESA_CALLBACK_URL || "https://your-ngrok-url.ngrok-free.app/api/mpesa/callback";
+  // ✅ HARDCODED CALLBACK URL (temporary)
+  const callbackUrl = "https://landowner-earache-hush.ngrok-free.dev/mpesa/callback";
 
   const requestBody = {
     BusinessShortCode: shortcode,
@@ -111,10 +112,10 @@ export const stkPush = async (phone: string, amount: number, order_id: number) =
       },
     });
 
-    console.log("✅ STK Push successful:", response.data);
+    console.log(" STK Push successful:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("❌ STK Push Error Details:");
+    console.error(" STK Push Error Details:");
     if (error.response) {
       console.error("Status:", error.response.status);
       console.error("Data:", error.response.data);

@@ -460,7 +460,7 @@ CREATE INDEX IX_CustomerFeedback_customer_id ON CustomerFeedback(customer_id);
 CREATE INDEX IX_CustomerFeedback_rating ON CustomerFeedback(rating);
 CREATE INDEX IX_CustomerFeedback_created_at ON CustomerFeedback(created_at);
 GO
-
+SELECT * FROM Users;
 SELECT * FROM CustomerFeedback;
 GO
 
@@ -653,3 +653,103 @@ WHERE payment_id = (SELECT MAX(payment_id) FROM Payments);
 
 
 DISABLE TRIGGER ALL ON Payments;
+SELECT user_id, full_name, email, role FROM Users;
+
+-- Create Settings Table
+CREATE TABLE Settings (
+    setting_id INT IDENTITY(1,1) PRIMARY KEY,
+    store_name NVARCHAR(200) NOT NULL DEFAULT 'Smart Laundry',
+    store_address NVARCHAR(500) NOT NULL DEFAULT 'Nairobi, Kenya',
+    contact_phone NVARCHAR(20) NOT NULL DEFAULT '+254 700 000 000',
+    operating_hours NVARCHAR(200) NOT NULL DEFAULT 'Mon-Fri: 7AM-8PM, Sat: 8AM-6PM, Sun: 9AM-4PM',
+    pickup_fee DECIMAL(10,2) NOT NULL DEFAULT 100,
+    delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 150,
+    theme VARCHAR(50) NOT NULL DEFAULT 'light',
+    currency VARCHAR(10) NOT NULL DEFAULT 'Ksh',
+    maintenance_mode BIT NOT NULL DEFAULT 0,
+    business_email NVARCHAR(100) NOT NULL DEFAULT 'info@smartlaundry.com',
+    facebook NVARCHAR(200) NULL,
+    instagram NVARCHAR(200) NULL,
+    twitter NVARCHAR(200) NULL,
+    pickup_slots NVARCHAR(500) NOT NULL DEFAULT '8:00-10:00, 12:00-14:00, 16:00-18:00',
+    delivery_slots NVARCHAR(500) NOT NULL DEFAULT '10:00-12:00, 14:00-16:00, 18:00-20:00',
+    service_radius DECIMAL(5,2) NOT NULL DEFAULT 10,
+    min_order DECIMAL(10,2) NOT NULL DEFAULT 200,
+    tax_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+    notification_email BIT NOT NULL DEFAULT 1,
+    notification_sms BIT NOT NULL DEFAULT 1,
+    notification_push BIT NOT NULL DEFAULT 0,
+    enable_pickup_fee BIT NOT NULL DEFAULT 1,
+    enable_delivery_fee BIT NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL
+);
+
+-- Insert default settings
+INSERT INTO Settings (
+    store_name, store_address, contact_phone, operating_hours,
+    pickup_fee, delivery_fee, theme, currency,
+    maintenance_mode, business_email,
+    pickup_slots, delivery_slots, service_radius, min_order, tax_rate,
+    notification_email, notification_sms, notification_push,
+    enable_pickup_fee, enable_delivery_fee
+)
+VALUES (
+    'Smart Laundry',
+    'Nairobi, Kenya',
+    '+254 700 000 000',
+    'Mon-Fri: 7AM-8PM, Sat: 8AM-6PM, Sun: 9AM-4PM',
+    100, 150, 'light', 'Ksh',
+    0, 'info@smartlaundry.com',
+    '8:00-10:00, 12:00-14:00, 16:00-18:00',
+    '10:00-12:00, 14:00-16:00, 18:00-20:00',
+    10, 200, 0,
+    1, 1, 0,
+    1, 1
+);
+SELECT * FROM Settings;
+SELECT * FROM Orders;
+SELECT 
+    o.order_id,
+    o.user_id,
+    u.full_name AS customer_name,
+    u.email AS customer_email,
+    u.phone AS customer_phone
+FROM Orders o
+LEFT JOIN Users u ON o.user_id = u.user_id
+
+SELECT * FROM OrderItems;
+SELECT * FROM Services;
+SELECT oi.*, s.service_name
+FROM OrderItems oi
+LEFT JOIN Services s ON oi.service_id = s.service_id;
+SELECT STRING_AGG(s.service_name, ', ') 
+FROM OrderItems oi 
+INNER JOIN Services s ON oi.service_id = s.service_id 
+WHERE oi.order_id = 1;  -- replace with an order_id that exists
+
+
+
+
+
+
+
+
+ALTER TABLE Orders ADD assigned_driver_id INT NULL;
+ALTER TABLE Orders ADD CONSTRAINT FK_Orders_Driver FOREIGN KEY (assigned_driver_id) REFERENCES Users(user_id);
+SELECT COLUMN_NAME 
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'assigned_driver_id';
+
+-- Check if column exists
+IF NOT EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'assigned_driver_id'
+)
+BEGIN
+    ALTER TABLE Orders ADD assigned_driver_id INT NULL;
+    ALTER TABLE Orders ADD CONSTRAINT FK_Orders_Driver FOREIGN KEY (assigned_driver_id) REFERENCES Users(user_id);
+END
+
+ALTER TABLE Services ADD category VARCHAR(50) NULL;
+UPDATE Deliveries SET driver_id = NULL WHERE driver_id = @id;

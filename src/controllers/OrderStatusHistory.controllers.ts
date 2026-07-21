@@ -1,5 +1,7 @@
+import { User } from './../Types/Users.type';
 import { Request, Response } from "express";
 import * as OrderStatusHistoryService from "../Services/OrderStatusHistory.Services";
+import getpool from "../db/config"; // establish a connection pool to the database
 
 export const getAllOrderStatusHistory = async (req: Request, res: Response) => {
   try {
@@ -118,8 +120,9 @@ export const getOrderStatusHistoryByOrderId = async (req: Request, res: Response
     });
   }
 }
+// Update only order status - AUTO CREATES HISTORY
 
-export const updateOrderStatusHistoryById = async (req: Request, res: Response) => {
+    export const updateOrderStatusHistoryById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { notes } = req.body;
@@ -154,7 +157,11 @@ export const updateOrderStatusHistoryById = async (req: Request, res: Response) 
       error: error.message
     });
   }
-}
+};
+
+
+
+
 
 export const deleteOrderStatusHistoryById = async (req: Request, res: Response) => {
   try {

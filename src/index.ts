@@ -17,7 +17,7 @@ import feedbackRoutes from "./router/feedback.routes";
 import StoreSettingsRoutes from './router/StoreSettings.routes';
 import getGeofenceZonesRoutes from './router/GeofenceZones.routes';
 import getDriverRoutesRoutes from './router/driverRoutes.routes';
-
+import settingsRoutes from './router/Settings.routes';
 // Load environment variables FIRST
 dotenv.config();
 
@@ -60,16 +60,16 @@ feedbackRoutes(app);
 StoreSettingsRoutes(app);
 getGeofenceZonesRoutes(app);
 getDriverRoutesRoutes(app);
-
+settingsRoutes(app);
 const PORT = process.env.PORT || 8088;
 
 app.listen(PORT, () => {
   console.log(`\n Server is running on http://localhost:${PORT}`);
-  console.log(`\n Available M-Pesa Endpoints:`);
-  console.log(`   GET  http://localhost:${PORT}/mpesa/token`);
-  console.log(`   POST http://localhost:${PORT}/mpesa/stkpush`);
-  console.log(`   POST http://localhost:${PORT}/mpesa/callback`);
-  console.log(`\n🏥 Health check: http://localhost:${PORT}/\n`);
+  //console.log(`\n Available M-Pesa Endpoints:`);
+  //console.log(`   GET  http://localhost:${PORT}/mpesa/token`);
+ // console.log(`   POST http://localhost:${PORT}/mpesa/stkpush`);
+  //console.log(`   POST http://localhost:${PORT}/mpesa/callback`);
+  console.log(`\n Health check: http://localhost:${PORT}/\n`);
 });
 
 // Database connection
