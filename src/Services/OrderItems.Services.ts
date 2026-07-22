@@ -1,16 +1,13 @@
-//import { OrderItems } from './../Types/OrderItems.type';
-import * as OrderItemsRepository from '../repositories/OrderItems.repositories';
+import * as OrderItemsRepository from '../repositories/Orders.repositories';
 import dotenv from 'dotenv';
 import { NewOrderItems, UpdateOrderItems } from '../Types/OrderItems.type';
 dotenv.config();    
 
-//get all order items
-export const getAllOrderItems=async()=> await OrderItemsRepository.getAllOrderItems()   
-//adding order items
-export const createOrderItem=async(orderItem: NewOrderItems)=> await OrderItemsRepository.createOrderItem(orderItem)    
-//get order item by id
-export const getOrderItemById=async(id:number) => await OrderItemsRepository.getOrderItemById(id)
-//deleting order item by id
-export const deleteOrderItemById=async(id:number) => await OrderItemsRepository.deleteOrderItemById(id)
-//update order item by id
-export const updateOrderItemById=async(id:number, orderItem: UpdateOrderItems) => await OrderItemsRepository.updateOrderItemById(id, orderItem)
+// NOTE: These are actually order methods, not order items.
+// Rename your service file to Orders.Services.ts if you want.
+
+export const getAllOrderItems = async () => await OrderItemsRepository.getAllOrders();
+export const createOrderItem = async (orderItem: NewOrderItems) => await OrderItemsRepository.createOrder(orderItem);
+export const getOrderItemById = async (id: number) => await OrderItemsRepository.getOrderById(id);
+export const deleteOrderItemById = async (id: number) => await OrderItemsRepository.deleteOrderById(id);
+export const updateOrderItemById = async (id: number, orderItem: UpdateOrderItems) => await OrderItemsRepository.updateOrderById(id, orderItem);
