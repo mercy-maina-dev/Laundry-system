@@ -65,20 +65,28 @@ export const deleteOrderItemById=async(req:Request,res:Response)=>{
 }
 
 //update an order item by id    
-export const updateOrderItemById=async(req:Request,res:Response)=>{
-    const id=parseInt(req.params.id.toString());
-    if(isNaN(id)){
-        return res.status(400).json({error:'Invalid order item id'});
-    }   
+export const updateOrderItemById = async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid order item id' });
+    }
     try {
-        const orderItemData=req.body;
-        const result=await getAllOrderItemsServices.updateOrderItemById(id, orderItemData);     
-        if(result.rowsAffected[0]===0){
-            return res.status(404).json({error:'Order item not found'});
-        }   
-        res.status(200).json({message:'Order item updated successfully'});
+        const orderItemData = req.body;
+        const result: any = await getAllOrderItemsServices.updateOrderItemById(id, orderItemData);
+
+        // Check if result has a message (error response)
+        if (result && result.message) {
+            return res.status(400).json({ error: result.message });
+        }
+
+        // Check if result has rowsAffected
+        if (result && result.rowsAffected && result.rowsAffected[0] === 0) {
+            return res.status(404).json({ error: 'Order item not found' });
+        }
+
+        res.status(200).json({ message: 'Order item updated successfully' });
     } catch (error: any) {
         console.error('Error updating order item:', error);
-        res.status(500).json({error:'Internal server error'});
-    }   
+        res.status(500).json({ error: 'Internal server error' });
+    }
 }

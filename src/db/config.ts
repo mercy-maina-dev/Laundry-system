@@ -33,7 +33,7 @@ export const dbConfig = {
         idleTimeoutMillis:30000
     },
     options:{   
-        encrypt: true, // Use encryption for secure connections
+        encrypt: false, // Use encryption for secure connections
         trustServerCertificate: true // Trust the server certificate (useful for development)
     }
 }

@@ -1,3 +1,10 @@
+console.log(' index.ts is being executed...');
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(' Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (error) => {
+    console.error(' Uncaught Exception:', error);
+});
 import express from 'express';
 import dotenv from 'dotenv';
 import getPool from './db/config'; 
