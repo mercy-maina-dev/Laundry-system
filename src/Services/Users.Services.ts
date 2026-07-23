@@ -12,59 +12,45 @@ dotenv.config();
 export const getAllUsers = async () => await UsersRepository.getAllUsers();
 
 export const createUser = async (User: NewUser) => {
-    // Normalize email and phone to avoid duplicates with different casing
-    const email = User.email.toLowerCase().trim();
-    const phone = User.phone.trim();
+    // Check if email already exists
+    const existingEmail = await UsersRepository.getUserByEmail(User.email);
+    if (existingEmail) {
+        throw new Error('Email already registered');
+    }
 
-    // Hash password
+    // Check if phone already exists
+    const existingPhone = await UsersRepository.getUserByPhone(User.phone);
+    if (existingPhone) {
+        throw new Error('Phone number already registered');
+    }
+
+    // Hash the user's password
     if (User.password) {
         User.password = await bcrypt.hash(User.password, 10);
     }
 
-    // Generate verification code
+    // Generate a verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    try {
-        // Insert user – database unique constraints will catch duplicates
-        await UsersRepository.createUser({
-            ...User,
-            email: email,
-            phone: phone,
-            verification_code: verificationCode
-        });
-    } catch (error: any) {
-        // Check if error is a duplicate key (SQL Server error 2627)
-        if (error.code === 'EREQUEST' && error.number === 2627) {
-            // Determine which field caused the duplicate
-            const message = error.message;
-            if (message.includes('UQ__Users__AB6E61643222258C')) { // Email constraint
-                throw new Error('Email already registered');
-            } else if (message.includes('UQ__Users__B43B145F4292460B')) { // Phone constraint
-                throw new Error('Phone number already registered');
-            }
-        }
-        // Re-throw other errors
-        throw error;
-    }
+    // Insert user into database
+    await UsersRepository.createUser(User);
 
-    // Store verification code (if not already stored)
-    await UsersRepository.setVerificationCode(email, verificationCode);
+    // Store verification code
+    await UsersRepository.setVerificationCode(User.email, verificationCode);
 
-    // Send email (gracefully handle failure)
-    try {
-        await sendEmail(
-            email,
-            'Verify your email for SmartLaundry pickup and delivery system app',
-            emailTemplate.verify(User.full_name, verificationCode),
-        );
-        console.log('Verification email sent to:', email);
-    } catch (emailError: any) {
-        console.error('Failed to send verification email:', emailError.message);
-    }
+    // Send verification email in the background – no await
+    // This prevents timeout issues on Render's free tier
+    sendEmail(
+        User.email,
+        'Verify your email for SmartLaundry pickup and delivery system app',
+        emailTemplate.verify(User.full_name, verificationCode),
+    ).catch((error) => {
+        console.error('Background email failed to send:', error.message);
+    });
 
     return {
         message: 'User added successfully. Please check your email to verify your account.',
-        email: email
+        email: User.email
     };
 };
 
@@ -80,16 +66,14 @@ export const verifyUser = async (email: string, code: string) => {
 
     await UsersRepository.verifyUser(email);
 
-    try {
-        await sendEmail(
-            User.email,
-            'Your email has been verified - SmartLaundry pickup and delivery system app',
-            emailTemplate.verifiedSuccess(User.full_name)
-        );
-        console.log('Verification success email sent to:', User.email);
-    } catch (emailError: any) {
-        console.error('Failed to send verification success email:', emailError.message);
-    }
+    // Send verification success email in the background – no await
+    sendEmail(
+        User.email,
+        'Your email has been verified - SmartLaundry pickup and delivery system app',
+        emailTemplate.verifiedSuccess(User.full_name)
+    ).catch((error) => {
+        console.error('Background verification email failed:', error.message);
+    });
 
     return { message: 'User verified successfully' };
 };
