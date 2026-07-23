@@ -1,9 +1,10 @@
-import {Express} from "express";
+import express from "express";
 import * as GeofenceZonesControllers from "../controllers/GeofenceZones.controllers";
 
-const getGeofenceZonesRoutes=(app:Express)=>{
+const getGeofenceZonesRoutes = (router: express.Router) => {
     // Geofence Zones
-    app.post("/geofence", GeofenceZonesControllers.createGeofenceZone);
-    app.post("/geofence/check", GeofenceZonesControllers.checkDriverInGeofence);
+    router.post("/geofence", GeofenceZonesControllers.createGeofenceZone);
+    router.post("/geofence/check", GeofenceZonesControllers.checkDriverInGeofence);
 }
+
 export default getGeofenceZonesRoutes;

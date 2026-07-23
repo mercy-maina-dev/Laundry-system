@@ -1,9 +1,10 @@
-import {Express} from "express";
+import express from "express";
 import * as StoreSettingsControllers from "../controllers/StoreSettings.controllers";
 
-const getStoreSettingsRoutes=(app:Express)=>{   
+const getStoreSettingsRoutes = (router: express.Router) => {   
     // Store Settings
-    app.get("/store/settings", StoreSettingsControllers.getStoreSettings);
-    app.put("/store/settings", StoreSettingsControllers.updateStoreSettings);
+    router.get("/store/settings", StoreSettingsControllers.getStoreSettings);
+    router.put("/store/settings", StoreSettingsControllers.updateStoreSettings);
 }
+
 export default getStoreSettingsRoutes;

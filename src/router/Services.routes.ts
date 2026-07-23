@@ -1,13 +1,12 @@
-import { Express } from "express";
+import express from "express";
 import * as ServicesControllers from '../controllers/Services.controllers';
 
-const ServicesRoutes=(app:Express)=>{
-    app.get('/services', ServicesControllers.getAllServices);
-    app.post('/addservices', ServicesControllers.createService);
-    app.get('/services/:id', ServicesControllers.getServiceById);
-    app.put('/services/:id', ServicesControllers.updateServices);
-    app.delete('/services/:id', ServicesControllers.deleteService);
+const ServicesRoutes = (router: express.Router) => {
+    router.get('/services', ServicesControllers.getAllServices);
+    router.post('/services', ServicesControllers.createService);
+    router.get('/services/:id', ServicesControllers.getServiceById);
+    router.put('/services/:id', ServicesControllers.updateServices);    // ✅ Changed from updateServiceById
+    router.delete('/services/:id', ServicesControllers.deleteService);  // ✅ Changed from deleteServiceById
 }
-
 
 export default ServicesRoutes;

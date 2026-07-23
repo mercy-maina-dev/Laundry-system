@@ -5,6 +5,7 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (error) => {
     console.error(' Uncaught Exception:', error);
 });
+
 import express from 'express';
 import dotenv from 'dotenv';
 import getPool from './db/config'; 
@@ -25,14 +26,15 @@ import StoreSettingsRoutes from './router/StoreSettings.routes';
 import getGeofenceZonesRoutes from './router/GeofenceZones.routes';
 import getDriverRoutesRoutes from './router/driverRoutes.routes';
 import settingsRoutes from './router/Settings.routes';
-// Load environment variables FIRST
+
+//  environment variables 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.IO with the HTTP server
- const io = initializeSocket(server);
+// Socket.IO with the HTTP server
+const io = initializeSocket(server);
 
 // Middleware
 app.use(cors());
@@ -44,42 +46,41 @@ app.get('/', (req, res) => {
   res.send('Hello, Express server is running!');
 });
 
-// ==========================================
-// MOUNT MPESA ROUTES - Choose ONE option:
-// ==========================================
-
-// OPTION 1: Mount at /mpesa (your current setup)
+//mpesa routes
 app.use("/mpesa", mpesaRoutes);
 
-// OPTION 2: Mount at /api/mpesa (more standard)
-// app.use("/api/mpesa", mpesaRoutes);
 
-// Register other routes (they use the function pattern)
-UsersRoutes(app);
-ServicesRoutes(app);
-OrdersRoutes(app);
-OrderItemsRoutes(app);
-DeliveriesRoutes(app);
-PaymentsRoutes(app);
-OrderStatusHistoryRoutes(app);
-PickupDeliveryRoutes(app);
-feedbackRoutes(app);
-StoreSettingsRoutes(app);
-getGeofenceZonesRoutes(app);
-getDriverRoutesRoutes(app);
-settingsRoutes(app);
+const apiRouter = express.Router();
+
+//all routes
+UsersRoutes(apiRouter);
+ServicesRoutes(apiRouter);
+OrdersRoutes(apiRouter);
+OrderItemsRoutes(apiRouter);
+DeliveriesRoutes(apiRouter);
+PaymentsRoutes(apiRouter);
+OrderStatusHistoryRoutes(apiRouter);
+PickupDeliveryRoutes(apiRouter);
+feedbackRoutes(apiRouter);
+StoreSettingsRoutes(apiRouter);
+getGeofenceZonesRoutes(apiRouter);
+getDriverRoutesRoutes(apiRouter);
+settingsRoutes(apiRouter);
+
+// Mount everything under /api
+app.use('/api', apiRouter);
+
+// ==========================================
+
 const PORT = process.env.PORT || 8088;
 
 app.listen(PORT, () => {
   console.log(`\n Server is running on http://localhost:${PORT}`);
-  //console.log(`\n Available M-Pesa Endpoints:`);
-  //console.log(`   GET  http://localhost:${PORT}/mpesa/token`);
- // console.log(`   POST http://localhost:${PORT}/mpesa/stkpush`);
-  //console.log(`   POST http://localhost:${PORT}/mpesa/callback`);
   console.log(`\n Health check: http://localhost:${PORT}/\n`);
+  console.log(`\n API routes available at: http://localhost:${PORT}/api`);
 });
 
 // Database connection
 getPool()
-  .then(() => console.log('✅ Database connection pool established successfully.'))
+  .then(() => console.log(' Database connection pool established successfully.'))
   .catch((error: any) => console.error(' Error establishing database connection:', error));

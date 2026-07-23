@@ -1,11 +1,11 @@
-import { Express } from "express";
+import express from "express";
 import * as DriverLiveTrackingControllers from "../controllers/DriverLiveTracking.controllers";
 
-const getDriverLiveTrackingRoutes = (app: Express) => {
-    app.post('/driver/location', DriverLiveTrackingControllers.updateDriverLocation);
-    app.get('/driver/:id/location', DriverLiveTrackingControllers.getDriverCurrentLocation);
-    app.get('/driver/:id/location-history', DriverLiveTrackingControllers.getDriverLocationHistory);
-    app.get('/drivers/active', DriverLiveTrackingControllers.getAllActiveDrivers);
+const getDriverLiveTrackingRoutes = (router: express.Router) => {
+    router.post('/driver/location', DriverLiveTrackingControllers.updateDriverLocation);
+    router.get('/driver/:id/location', DriverLiveTrackingControllers.getDriverCurrentLocation);
+    router.get('/driver/:id/location-history', DriverLiveTrackingControllers.getDriverLocationHistory);
+    router.get('/drivers/active', DriverLiveTrackingControllers.getAllActiveDrivers);
 }
 
 export default getDriverLiveTrackingRoutes;

@@ -1,11 +1,12 @@
-import { Express } from "express";
+import express from "express";
 import * as PaymentsControllers from '../controllers/payments.controllers';
 
-const PaymentsRoutes=(app:Express)=>{   
-    app.get('/payments', PaymentsControllers.getAllPayments);
-    app.post('/payment', PaymentsControllers.createPayment);
-    app.get('/payments/:id', PaymentsControllers.getPaymentById);
-    app.put('/payments/:id', PaymentsControllers.updatePayment);
-    app.delete('/payments/:id', PaymentsControllers.deletePayment);
+const PaymentsRoutes = (router: express.Router) => {   
+    router.get('/payments', PaymentsControllers.getAllPayments);
+    router.post('/payment', PaymentsControllers.createPayment);
+    router.get('/payments/:id', PaymentsControllers.getPaymentById);
+    router.put('/payments/:id', PaymentsControllers.updatePayment);
+    router.delete('/payments/:id', PaymentsControllers.deletePayment);
 }
+
 export default PaymentsRoutes;

@@ -1,27 +1,22 @@
 import { loginUsers } from './../Services/Users.Services';
 import { verifyUser } from './../Services/Users.Services';  
-import { Express } from "express";
-import * as UsersControllers from '../controllers/Users.controllers';// Import all functions from the UsersControllers module to handle user-related operations
-import { adminOnly,customerOnly,driverOnly } from "../middleware/UsersAuth";    
-import { verify, } from "jsonwebtoken";
+import express from "express";
+import * as UsersControllers from '../controllers/Users.controllers';
+import { adminOnly, customerOnly, driverOnly } from "../middleware/UsersAuth";
+import { verify } from "jsonwebtoken";
 
-
-
-
-const getAllUsersRoutes=(app:Express)=>{
-    app.get('/admin/users',UsersControllers.getAllUsers);// Define a route for retrieving all users and associate it with the getAllUsers controller function
-    app.post('/adduser',UsersControllers.createUser);
-    app.get('/user/:id',UsersControllers.getUserById);
-    app.delete('/user/:id',UsersControllers.deleteUserById);
-    app.put('/user/:id',UsersControllers.updateUserById);
-    app.post('/login',UsersControllers.loginUser);
-    app.post('/verify',UsersControllers.verifyUser);
-    app.post('/resend-verification',UsersControllers.resendVerification);
-    //app.get('/admin/users', adminOnly, UsersControllers.getAllUsers);
-//app.get('/driver/tasks', driverOnly, UsersControllers.);
-//app.get('/customer/orders', customerOnly, UsersControllers.getCustomerOrders);
-
-
-
+const getAllUsersRoutes = (router: express.Router) => {
+    router.get('/admin/users', UsersControllers.getAllUsers);
+    router.post('/adduser', UsersControllers.createUser);
+    router.get('/user/:id', UsersControllers.getUserById);
+    router.delete('/user/:id', UsersControllers.deleteUserById);
+    router.put('/user/:id', UsersControllers.updateUserById);
+    router.post('/login', UsersControllers.loginUser);
+    router.post('/verify', UsersControllers.verifyUser);
+    router.post('/resend-verification', UsersControllers.resendVerification);
+    // router.get('/admin/users', adminOnly, UsersControllers.getAllUsers);
+    // router.get('/driver/tasks', driverOnly, UsersControllers.);
+    // router.get('/customer/orders', customerOnly, UsersControllers.getCustomerOrders);
 }
-export default getAllUsersRoutes;// Export the getAllUsersRoutes function as the default export of this module 
+
+export default getAllUsersRoutes;
