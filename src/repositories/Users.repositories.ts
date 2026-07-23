@@ -1,6 +1,7 @@
 import { request } from "express";
 import getpool from "../db/config";
 import { NewUser, User } from "../Types/Users.type";
+import { pool } from "mssql";
 
 //get all users
 export const getAllUsers = async () => {
@@ -141,6 +142,17 @@ export const getUserByEmail = async (email: string) => {
         .query(`
             SELECT * FROM Users
             WHERE email = @email
+        `);
+    return result.recordset[0] || null;
+};
+
+export const getUserByPhone = async (phone: string) => {
+    const pool = await getpool();
+    const result = await pool.request()
+        .input("phone", phone)
+        .query(`
+            SELECT * FROM Users
+            WHERE phone = @phone
         `);
     return result.recordset[0] || null;
 };
