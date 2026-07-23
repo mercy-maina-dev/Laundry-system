@@ -12,48 +12,59 @@ dotenv.config();
 export const getAllUsers = async () => await UsersRepository.getAllUsers();
 
 export const createUser = async (User: NewUser) => {
-    // Check if email already exists
-    const existingEmail = await UsersRepository.getUserByEmail(User.email);
-    if (existingEmail) {
-        throw new Error('Email already registered');
-    }
+    // Normalize email and phone to avoid duplicates with different casing
+    const email = User.email.toLowerCase().trim();
+    const phone = User.phone.trim();
 
-    // Check if phone already exists
-    const existingPhone = await UsersRepository.getUserByPhone(User.phone);
-    if (existingPhone) {
-        throw new Error('Phone number already registered');
-    }
-
-    // Hash the user's password
+    // Hash password
     if (User.password) {
         User.password = await bcrypt.hash(User.password, 10);
     }
 
-    // Generate a verification code
+    // Generate verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Insert user into database
-    await UsersRepository.createUser(User);
+    try {
+        // Insert user – database unique constraints will catch duplicates
+        await UsersRepository.createUser({
+            ...User,
+            email: email,
+            phone: phone,
+            verification_code: verificationCode
+        });
+    } catch (error: any) {
+        // Check if error is a duplicate key (SQL Server error 2627)
+        if (error.code === 'EREQUEST' && error.number === 2627) {
+            // Determine which field caused the duplicate
+            const message = error.message;
+            if (message.includes('UQ__Users__AB6E61643222258C')) { // Email constraint
+                throw new Error('Email already registered');
+            } else if (message.includes('UQ__Users__B43B145F4292460B')) { // Phone constraint
+                throw new Error('Phone number already registered');
+            }
+        }
+        // Re-throw other errors
+        throw error;
+    }
 
-    // Store verification code
-    await UsersRepository.setVerificationCode(User.email, verificationCode);
+    // Store verification code (if not already stored)
+    await UsersRepository.setVerificationCode(email, verificationCode);
 
-    // Send verification email - wrap in try-catch so registration succeeds even if email fails
+    // Send email (gracefully handle failure)
     try {
         await sendEmail(
-            User.email,
+            email,
             'Verify your email for SmartLaundry pickup and delivery system app',
             emailTemplate.verify(User.full_name, verificationCode),
         );
-        console.log('Verification email sent to:', User.email);
+        console.log('Verification email sent to:', email);
     } catch (emailError: any) {
         console.error('Failed to send verification email:', emailError.message);
-        // User is already created, so we continue
     }
 
     return {
         message: 'User added successfully. Please check your email to verify your account.',
-        email: User.email
+        email: email
     };
 };
 

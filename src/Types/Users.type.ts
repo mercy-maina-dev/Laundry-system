@@ -12,6 +12,7 @@ export interface NewUser {
     phone: string;
     password: string;
     role: string;
+    verification_code: string;
 }
 
 export interface updateUser {

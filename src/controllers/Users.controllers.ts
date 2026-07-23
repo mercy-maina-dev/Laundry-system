@@ -18,17 +18,27 @@ export const getAllUsers = async (req: Request, res: Response) => {
   }
 }
         
-export const createUser=async(req:Request,res:Response)=>{
-    const User=req.body;// Extract the  user data from the request body
+
+export const createUser = async (req: Request, res: Response) => {
     try {
-        const result=await UsersServices.createUser(User);// Call the createUser method from the UsersService to add a new user to the database
-        res.status(201).json(result);// Send a success response to the client with the result of the user creation
+        const userData = req.body;
+        const result = await UsersServices.createUser(userData);
+        res.status(201).json(result);
     } catch (error: any) {
-        console.error('Error creating user:', error);
-        console.log("BODY RECEIVED:", req.body);
-        res.status(500).json({error:'Internal server error'});// Send an error response to the client
+        console.error('Error creating user:', error.message);
+        
+        // Handle specific errors
+        if (error.message === 'Email already registered') {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+        if (error.message === 'Phone number already registered') {
+            return res.status(400).json({ error: 'Phone number already registered' });
+        }
+        
+        // For other errors, return 500
+        res.status(500).json({ error: error.message || 'Internal server error' });
     }
-}
+};
 
 export const getUserById=async(req:Request,res:Response)=>{
     const id= parseInt(req.params.id as string);// Extract the user ID from the request parameters and convert it to an integer
