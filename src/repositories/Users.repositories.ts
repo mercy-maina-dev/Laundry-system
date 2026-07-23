@@ -50,83 +50,107 @@ export const getUserById = async (id: number): Promise<User | null> => {
 
 /**
  * Delete a user and all related data (orders, payments, etc.)
- * Handles foreign key constraints in the correct order
+ * Uses individual DELETE statements with subqueries for better compatibility
  */
 export const deleteUserById = async (id: number) => {
     const pool = await getpool();
 
-    // 1. Unassign driver from Orders
-    await pool.request()
-        .input('id', id)
-        .query('UPDATE Orders SET assigned_driver_id = NULL WHERE assigned_driver_id = @id');
+    try {
+        // 1. Unassign driver from Orders
+        await pool.request()
+            .input('id', id)
+            .query('UPDATE Orders SET assigned_driver_id = NULL WHERE assigned_driver_id = @id');
 
-    // 2. Delete PickupDelivery records where driver is this user
-    await pool.request()
-        .input('id', id)
-        .query('DELETE FROM PickupDelivery WHERE driver_id = @id');
+        // 2. Delete PickupDelivery records where driver is this user
+        await pool.request()
+            .input('id', id)
+            .query('DELETE FROM PickupDelivery WHERE driver_id = @id');
 
-    // 3. Delete Deliveries where driver is this user
-    await pool.request()
-        .input('id', id)
-        .query('DELETE FROM Deliveries WHERE driver_id = @id');
+        // 3. Delete Deliveries where driver is this user
+        await pool.request()
+            .input('id', id)
+            .query('DELETE FROM Deliveries WHERE driver_id = @id');
 
-    // 4. Delete all orders and related records created by this user
-    await pool.request()
-        .input('id', id)
-        .query(`
-            -- Delete order items
-            DELETE oi FROM OrderItems oi
-            INNER JOIN Orders o ON oi.order_id = o.order_id
-            WHERE o.user_id = @id;
+        // 4. Delete OrderItems linked to user's orders
+        await pool.request()
+            .input('id', id)
+            .query(`
+                DELETE FROM OrderItems
+                WHERE order_id IN (SELECT order_id FROM Orders WHERE user_id = @id)
+            `);
 
-            -- Delete payments
-            DELETE p FROM Payments p
-            INNER JOIN Orders o ON p.order_id = o.order_id
-            WHERE o.user_id = @id;
+        // 5. Delete Payments linked to user's orders
+        await pool.request()
+            .input('id', id)
+            .query(`
+                DELETE FROM Payments
+                WHERE order_id IN (SELECT order_id FROM Orders WHERE user_id = @id)
+            `);
 
-            -- Delete order status history
-            DELETE oh FROM OrderStatusHistory oh
-            INNER JOIN Orders o ON oh.order_id = o.order_id
-            WHERE o.user_id = @id;
+        // 6. Delete OrderStatusHistory linked to user's orders
+        await pool.request()
+            .input('id', id)
+            .query(`
+                DELETE FROM OrderStatusHistory
+                WHERE order_id IN (SELECT order_id FROM Orders WHERE user_id = @id)
+            `);
 
-            -- Delete any remaining deliveries linked to orders
-            DELETE d FROM Deliveries d
-            INNER JOIN Orders o ON d.order_id = o.order_id
-            WHERE o.user_id = @id;
+        // 7. Delete any remaining deliveries linked to orders (just in case)
+        await pool.request()
+            .input('id', id)
+            .query(`
+                DELETE FROM Deliveries
+                WHERE order_id IN (SELECT order_id FROM Orders WHERE user_id = @id)
+            `);
 
-            -- Delete any remaining pickup/delivery records linked to orders
-            DELETE pd FROM PickupDelivery pd
-            INNER JOIN Orders o ON pd.order_id = o.order_id
-            WHERE o.user_id = @id;
+        // 8. Delete any remaining pickup/delivery records linked to orders
+        await pool.request()
+            .input('id', id)
+            .query(`
+                DELETE FROM PickupDelivery
+                WHERE order_id IN (SELECT order_id FROM Orders WHERE user_id = @id)
+            `);
 
-            -- Finally delete the orders themselves
-            DELETE FROM Orders WHERE user_id = @id;
-        `);
+        // 9. Delete Orders
+        await pool.request()
+            .input('id', id)
+            .query('DELETE FROM Orders WHERE user_id = @id');
 
-    // 5. Delete any customer feedback linked to this user (as customer or driver)
-    await pool.request()
-        .input('id', id)
-        .query(`
-            DELETE FROM CustomerFeedback 
-            WHERE customer_id = @id OR driver_id = @id
-        `);
+        // 10. Delete CustomerFeedback (as customer or driver)
+        await pool.request()
+            .input('id', id)
+            .query(`
+                DELETE FROM CustomerFeedback 
+                WHERE customer_id = @id OR driver_id = @id
+            `);
 
-    // 6. Delete driver live tracking records
-    await pool.request()
-        .input('id', id)
-        .query('DELETE FROM DriverLiveTracking WHERE driver_id = @id');
+        // 11. Delete driver live tracking records
+        await pool.request()
+            .input('id', id)
+            .query('DELETE FROM DriverLiveTracking WHERE driver_id = @id');
 
-    // 7. Delete driver route history
-    await pool.request()
-        .input('id', id)
-        .query('DELETE FROM DriverRoutes WHERE driver_id = @id');
+        // 12. Delete driver route history
+        await pool.request()
+            .input('id', id)
+            .query('DELETE FROM DriverRoutes WHERE driver_id = @id');
 
-    // 8. Finally delete the user
-    const result = await pool.request()
-        .input('id', id)
-        .query('DELETE FROM Users WHERE user_id = @id');
+        // 13. Finally delete the user
+        const result = await pool.request()
+            .input('id', id)
+            .query('DELETE FROM Users WHERE user_id = @id');
 
-    return result;
+        if (result.rowsAffected[0] === 0) {
+            throw new Error('User not found');
+        }
+
+        return { 
+            success: true, 
+            message: 'User and all associated data deleted successfully' 
+        };
+    } catch (error: any) {
+        console.error('Error deleting user:', error.message);
+        throw new Error('Failed to delete user: ' + error.message);
+    }
 };
 
 /**
